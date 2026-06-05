@@ -1,0 +1,530 @@
+definitions:
+  handlers.ArticleCreateInput:
+    properties:
+      content:
+        example: Текст статьи...
+        type: string
+      status:
+        enum:
+        - draft
+        - published
+        example: draft
+        type: string
+      title:
+        example: Моя первая статья
+        type: string
+    required:
+    - status
+    - title
+    type: object
+  handlers.ArticleResponse:
+    properties:
+      content:
+        example: Текст статьи...
+        type: string
+      created_at:
+        example: "2024-01-15T12:00:00Z"
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      status:
+        example: published
+        type: string
+      title:
+        example: Моя первая статья
+        type: string
+      updated_at:
+        example: "2024-01-15T12:30:00Z"
+        type: string
+      user_id:
+        example: 550e8400-e29b-41d4-a716-446655440001
+        type: string
+    type: object
+  handlers.ArticleUpdateInput:
+    properties:
+      content:
+        example: Обновленный текст...
+        type: string
+      status:
+        enum:
+        - draft
+        - published
+        example: published
+        type: string
+      title:
+        example: Обновленный заголовок
+        type: string
+    type: object
+  handlers.LoginInput:
+    properties:
+      email:
+        example: user@example.com
+        type: string
+      password:
+        example: password123
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  handlers.RegisterInput:
+    properties:
+      email:
+        example: user@example.com
+        type: string
+      password:
+        example: password123
+        minLength: 6
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  handlers.UserResponse:
+    properties:
+      email:
+        example: user@example.com
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /api/articles:
+    get:
+      description: Возвращает все статьи текущего авторизованного пользователя с пагинацией
+      parameters:
+      - default: 1
+        description: Номер страницы
+        example: 1
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Количество записей на странице
+        example: 10
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список статей
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - CookieAuth: []
+      summary: Получение списка статей пользователя
+      tags:
+      - Articles
+    post:
+      consumes:
+      - application/json
+      description: Создает новую статью для авторизованного пользователя
+      parameters:
+      - description: Данные для создания статьи
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.ArticleCreateInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Статья успешно создана
+          schema:
+            $ref: '#/definitions/handlers.ArticleResponse'
+        "400":
+          description: Неверный формат запроса
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - CookieAuth: []
+      summary: Создание новой статьи
+      tags:
+      - Articles
+  /api/articles/{id}:
+    delete:
+      description: Удаляет статью (soft delete) (только если пользователь является
+        владельцем)
+      parameters:
+      - description: UUID статьи
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Статья успешно удалена
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Доступ запрещен (не владелец)
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Статья не найдена
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - CookieAuth: []
+      summary: Удаление статьи
+      tags:
+      - Articles
+    get:
+      description: Возвращает статью по указанному ID (только если пользователь является
+        владельцем)
+      parameters:
+      - description: UUID статьи
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Статья найдена
+          schema:
+            $ref: '#/definitions/handlers.ArticleResponse'
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Доступ запрещен (не владелец)
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Статья не найдена
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - CookieAuth: []
+      summary: Получение статьи по ID
+      tags:
+      - Articles
+    put:
+      consumes:
+      - application/json
+      description: Обновляет существующую статью (только если пользователь является
+        владельцем)
+      parameters:
+      - description: UUID статьи
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Данные для обновления
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.ArticleUpdateInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Статья успешно обновлена
+          schema:
+            $ref: '#/definitions/handlers.ArticleResponse'
+        "400":
+          description: Неверный формат запроса
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Доступ запрещен (не владелец)
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Статья не найдена
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - CookieAuth: []
+      summary: Обновление статьи
+      tags:
+      - Articles
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Аутентификация пользователя. Устанавливает access_token и refresh_token
+        в cookies.
+      parameters:
+      - description: Учетные данные
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.LoginInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный вход
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Неверный формат запроса
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Неверные учетные данные
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Вход в систему
+      tags:
+      - Auth
+  /auth/logout:
+    post:
+      description: Отзывает refresh token и очищает cookies
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный выход
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Нет refresh token
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - CookieAuth: []
+      summary: Выход из системы
+      tags:
+      - Auth
+  /auth/logout-all:
+    post:
+      description: Отзывает все refresh токены текущего пользователя
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный выход из всех сессий
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - CookieAuth: []
+      summary: Выход из всех сессий
+      tags:
+      - Auth
+  /auth/oauth/{provider}:
+    get:
+      description: Перенаправляет пользователя на страницу авторизации OAuth2 провайдера
+        (Yandex)
+      parameters:
+      - description: Провайдер OAuth (yandex)
+        in: path
+        name: provider
+        required: true
+        type: string
+      responses:
+        "302":
+          description: Перенаправление на OAuth2 провайдера
+        "400":
+          description: Неподдерживаемый провайдер
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Начало OAuth2 аутентификации
+      tags:
+      - Auth
+  /auth/oauth/{provider}/callback:
+    get:
+      description: Обработка callback от OAuth2 провайдера. Выполняет вход или регистрацию
+        пользователя.
+      parameters:
+      - description: Authorization code
+        in: query
+        name: code
+        required: true
+        type: string
+      - description: State parameter
+        in: query
+        name: state
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Успешная OAuth2 аутентификация
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Неверный запрос
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Неверный state
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Callback OAuth2 аутентификации
+      tags:
+      - Auth
+  /auth/refresh:
+    post:
+      description: Обновляет access_token и refresh_token с использованием refresh_token
+        из cookie
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Токены успешно обновлены
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Нет refresh token
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Неверный refresh token
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Обновление токенов
+      tags:
+      - Auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Создает нового пользователя с указанным email и паролем
+      parameters:
+      - description: Данные для регистрации
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RegisterInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Пользователь успешно создан
+          schema:
+            $ref: '#/definitions/handlers.UserResponse'
+        "400":
+          description: Неверный формат запроса или пользователь уже существует
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Регистрация нового пользователя
+      tags:
+      - Auth
+  /auth/whoami:
+    get:
+      description: Возвращает ID текущего авторизованного пользователя
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ID пользователя
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - CookieAuth: []
+      summary: Информация о текущем пользователе
+      tags:
+      - Auth
+swagger: "2.0"
